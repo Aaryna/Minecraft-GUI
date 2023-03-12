@@ -1,0 +1,95 @@
+
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+public class MutePlugin extends JavaPlugin implements CommandExecutor {
+
+private final Map<UUID, MuteData> muteData = new HashMap<>();
+
+@Override
+public void onEnable() {
+    // Register the command executor
+    getCommand("mute").setExecutor(this);
+    getCommand("unmute").setExecutor(this);
+    getCommand("mutes").setExecutor(this);
+}
+
+@Override
+public void onDisable() {
+    // Save the mute data to a history file or database
+    // ...
+}
+
+@Override
+public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+    if (!(sender instanceof Player)) {
+        sender.sendMessage(ChatColor.RED + "Only players can use this command!");
+        return true;
+    }
+
+    Player player = (Player) sender;
+
+    if (command.getName().equalsIgnoreCase("mute")) {
+        if (!player.hasPermission("muteplugin.mute")) {
+            player.sendMessage(ChatColor.RED + "You do not have permission to use this command!");
+            return true;
+        }
+
+        if (args.length < 2) {
+            player.sendMessage(ChatColor.RED + "Usage: /mute <player> <time>");
+            return true;
+        }
+
+        Player target = Bukkit.getPlayer(args[0]);
+
+        if (target == null) {
+            player.sendMessage(ChatColor.RED + "Player not found!");
+            return true;
+        }
+
+        long duration = parseDuration(args[1]);
+
+        if (duration == -1) {
+            player.sendMessage(ChatColor.RED + "Invalid time format! Use '10m', '2h', or '3d'.");
+            return true;
+        }
+
+        // Mute the player and store the mute data
+        target.sendMessage(ChatColor.RED + "You have been muted for " + formatDuration(duration) + "!");
+        player.sendMessage(ChatColor.GREEN + "Muted player " + target.getName() + " for " + formatDuration(duration) + ".");
+        muteData.put(target.getUniqueId(), new MuteData(player.getUniqueId(), duration));
+
+        return true;
+    }
+
+    if (command.getName().equalsIgnoreCase("unmute")) {
+        if (!player.hasPermission("muteplugin.unmute")) {
+            player.sendMessage(ChatColor.RED + "You do not have permission to use this command!");
+            return true;
+        }
+
+        if (args.length < 1) {
+            player.sendMessage(ChatColor.RED + "Usage: /unmute <player>");
+            return true;
+        }
+
+        Player target = Bukkit.getPlayer(args[0]);
+
+        if (target == null) {
+            player.sendMessage(ChatColor.RED + "Player not found!");
+            return true;
+        }
+
+        // Unmute the player and remove the mute data
+        target.sendMessage(ChatColor.GREEN + "You have been unmuted!");
+        player.sendMessage(ChatColor.GREEN + "
